@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="CLIforAPI" width="200">
+</p>
+
 # CLIforAPI
 
 Point this CLI at any OpenAPI spec. Every endpoint becomes a shell command — with output compressed for AI agents.
