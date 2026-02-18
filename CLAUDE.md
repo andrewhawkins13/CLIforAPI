@@ -40,9 +40,9 @@ pip install -e ".[dev]"
 pytest
 
 # Run CLI (env var or --spec flag)
-export CLIFORAPI_SPEC=https://petstore.swagger.io/v2/swagger.json
+export CLIFORAPI_SPEC=https://api.example.com/openapi.json
 cliforapi list
-cliforapi get /pet/1
+cliforapi get /users/42
 ```
 
 ## Architecture Decisions
@@ -77,6 +77,6 @@ cliforapi get /pet/1
 
 ## Tested Against
 
-- **Petstore v2** (Swagger 2.0) — all CRUD operations, query params, positional params
-- **GitHub REST API** (OpenAPI 3.0, 1080 endpoints) — authenticated requests, `$ref` param resolution
-- **Tidy API** (OpenAPI 3.0 via readme.io) — spec auto-loaded from readme.io hosted spec URL
+- Swagger 2.0 specs — CRUD operations, query params, positional params
+- Large OpenAPI 3.0 specs (1000+ endpoints) — authenticated requests, `$ref` param resolution
+- Hosted OpenAPI 3.0 specs — remote spec auto-loading
