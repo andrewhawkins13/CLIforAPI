@@ -64,6 +64,39 @@ cliforapi --json get /users/42                        # JSON output instead of T
 
 Spec can also be a local file: `cliforapi --spec ./openapi.yaml get /users`
 
+## Add to Your Project
+
+Install from git (not on PyPI yet):
+
+```bash
+pip install git+https://github.com/andrewhawkins13/CLIforAPI.git
+```
+
+Tell your AI agent it's available:
+
+```bash
+cliforapi init
+```
+
+This writes `CLIFORAPI.md` to your project root. AI coding tools (Claude Code, Cursor, Windsurf, etc.) read this file and will use CLIforAPI automatically instead of crafting raw HTTP requests.
+
+Point it at your API's OpenAPI spec and set auth:
+
+```bash
+export CLIFORAPI_SPEC=https://your-api.example.com/openapi.json
+export CLIFORAPI_TOKEN=your-bearer-token
+```
+
+Your agent's workflow is two commands — discover once, then call endpoints:
+
+```bash
+cliforapi list                          # run once: returns every endpoint
+cliforapi get /users/42                 # call any endpoint by method + path
+cliforapi post /orders --body '{"item": "widget", "qty": 5}'
+```
+
+Exit codes are machine-readable for scripting (`0`=success, `2`=auth error, `3`=4xx, `4`=5xx) — see [Exit Codes](#exit-codes) for the full table.
+
 ## Output Format
 
 Default output is [TOON](https://toonformat.dev/). Pass `--json` for standard JSON. Errors are always JSON.

@@ -171,6 +171,24 @@ class TestAuthCommand:
         assert "No credentials provided" in result.output
 
 
+class TestInitCommand:
+    def test_init_creates_file(self, runner: CliRunner, tmp_path: Path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(main, ["init"])
+        assert result.exit_code == 0
+        target = tmp_path / "CLIFORAPI.md"
+        assert target.exists()
+        assert "Created" in result.output
+        assert "cliforapi list" in target.read_text()
+
+    def test_init_already_exists(self, runner: CliRunner, tmp_path: Path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "CLIFORAPI.md").write_text("existing")
+        result = runner.invoke(main, ["init"])
+        assert result.exit_code == 1
+        assert "already exists" in result.output
+
+
 class TestPostCommand:
     @respx.mock
     def test_post_with_body(self, runner: CliRunner, spec_file: str):
