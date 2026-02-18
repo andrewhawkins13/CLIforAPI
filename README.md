@@ -18,23 +18,21 @@ pip install -e ".[dev]"
 
 ## Usage
 
+Set `CLIFORAPI_SPEC` once to skip `--spec` on every call:
+
 ```bash
-# List all endpoints
-cliforapi --spec https://petstore.swagger.io/v2/swagger.json list
+export CLIFORAPI_SPEC=https://petstore.swagger.io/v2/swagger.json
 
-# GET request
-cliforapi --spec https://petstore.swagger.io/v2/swagger.json get /pet/{petId} --petId 1
+cliforapi list
+cliforapi get /pet/{petId} --petId 1
+cliforapi post /pet --body '{"name": "Fido", "status": "available"}'
+cliforapi get /pet/1                    # positional params auto-detected
+cliforapi --json get /pet/{petId} --petId 1  # JSON output
+```
 
-# POST with body
-cliforapi --spec https://petstore.swagger.io/v2/swagger.json post /pet --body '{"name": "Fido", "status": "available"}'
+Or pass `--spec` directly:
 
-# Positional params (auto-detected)
-cliforapi --spec https://petstore.swagger.io/v2/swagger.json get /pet/1
-
-# JSON output instead of TOON
-cliforapi --spec https://petstore.swagger.io/v2/swagger.json --json get /pet/{petId} --petId 1
-
-# Local spec file
+```bash
 cliforapi --spec ./openapi.yaml get /users
 ```
 
@@ -68,11 +66,13 @@ Errors are always JSON:
 cliforapi auth --spec https://api.example.com/openapi.json
 
 # Or pass directly
-cliforapi --spec ... --token <bearer-token> get /protected
-cliforapi --spec ... --api-key <key> get /protected
+cliforapi --token <bearer-token> get /protected
+cliforapi --api-key <key> get /protected
 
-# Or set env vars
-export CLIFORAPI_BEARER_TOKEN=abc123
+# Or set env vars for a full zero-flag workflow
+export CLIFORAPI_SPEC=https://api.example.com/openapi.json
+export CLIFORAPI_TOKEN=your-token
+cliforapi get /protected
 ```
 
 Precedence: CLI flags > env vars > `.env` file.

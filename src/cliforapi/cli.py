@@ -78,15 +78,22 @@ def _parse_extra_params(args: tuple[str, ...]) -> tuple[dict[str, str], str | No
 # ---------------------------------------------------------------------------
 
 @click.group(invoke_without_command=True)
-@click.option("--spec", required=False, help="OpenAPI spec URL or file path")
+@click.option("--spec", envvar="CLIFORAPI_SPEC", required=False, help="OpenAPI spec URL or file path (env: CLIFORAPI_SPEC)")
 @click.option("--json-output", "--json", "use_json", is_flag=True, help="Output raw JSON instead of TOON")
-@click.option("--token", default=None, help="Bearer token for auth")
-@click.option("--api-key", default=None, help="API key for auth")
+@click.option("--token", default=None, envvar="CLIFORAPI_TOKEN", help="Bearer token (env: CLIFORAPI_TOKEN)")
+@click.option("--api-key", default=None, envvar="CLIFORAPI_API_KEY", help="API key (env: CLIFORAPI_API_KEY)")
 @click.option("--timeout", default=30.0, type=float, help="Request timeout in seconds")
 @click.version_option(__version__)
 @click.pass_context
 def main(ctx: click.Context, spec: str | None, use_json: bool, token: str | None, api_key: str | None, timeout: float) -> None:
-    """cliforapi — Universal CLI for any OpenAPI spec."""
+    """cliforapi — Universal CLI for any OpenAPI spec.
+
+    \b
+    Set CLIFORAPI_SPEC to skip --spec on every call:
+        export CLIFORAPI_SPEC=https://api.example.com/openapi.json
+        cliforapi list
+        cliforapi get /users
+    """
     ctx.ensure_object(dict)
     ctx.obj["spec_ref"] = spec
     ctx.obj["use_json"] = use_json
