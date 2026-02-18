@@ -26,7 +26,7 @@ export CLIFORAPI_SPEC=https://petstore.swagger.io/v2/swagger.json
 cliforapi list
 cliforapi get /pet/{petId} --petId 1
 cliforapi post /pet --body '{"name": "Fido", "status": "available"}'
-cliforapi get /pet/1                    # positional params auto-detected
+cliforapi get /pet/1                         # positional params auto-detected
 cliforapi --json get /pet/{petId} --petId 1  # JSON output
 ```
 
@@ -35,6 +35,18 @@ Or pass `--spec` directly:
 ```bash
 cliforapi --spec ./openapi.yaml get /users
 ```
+
+## Environment Variables
+
+All flags can be set via env vars for a zero-flag workflow:
+
+| Env Var | Flag | Purpose |
+|---------|------|---------|
+| `CLIFORAPI_SPEC` | `--spec` | OpenAPI spec URL or file path |
+| `CLIFORAPI_TOKEN` | `--token` | Bearer token for auth |
+| `CLIFORAPI_API_KEY` | `--api-key` | API key for auth |
+
+CLI flags always override env vars when both are set.
 
 ## Output
 
@@ -77,6 +89,8 @@ cliforapi get /protected
 
 Precedence: CLI flags > env vars > `.env` file.
 
+When credentials are saved via `cliforapi auth`, the tool automatically adds `*.env` to `.gitignore` if the config directory is inside a git repo. If not, it prints a warning about the plaintext credentials file.
+
 ## Route Matching
 
 Routes are matched using a fuzzy cascade:
@@ -102,49 +116,48 @@ Routes are matched using a fuzzy cascade:
 
 Step-by-step walkthrough using the GitHub REST API (1080 endpoints, bearer token auth).
 
-### 1. Get a GitHub token
+### 1. Set up
 
 Use an existing token or create one at https://github.com/settings/tokens. If you have the `gh` CLI:
 
 ```bash
-export GH_TOKEN=$(gh auth token)
+export CLIFORAPI_SPEC=https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
+export CLIFORAPI_TOKEN=$(gh auth token)
 ```
 
 ### 2. Explore available endpoints
 
 ```bash
-SPEC=https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
-
-cliforapi --spec $SPEC list | head -20
+cliforapi list | head -20
 ```
 
-### 3. Make an authenticated request
+### 3. Make authenticated requests
 
 ```bash
 # Get your user profile
-cliforapi --spec $SPEC --token $GH_TOKEN get /user
+cliforapi get /user
 
 # List your repos
-cliforapi --spec $SPEC --token $GH_TOKEN get /user/repos --per_page 3
+cliforapi get /user/repos --per_page 3
 
 # Get a specific repo
-cliforapi --spec $SPEC --token $GH_TOKEN get /repos/{owner}/{repo} --owner andrewhawkins13 --repo cliforapi
+cliforapi get /repos/{owner}/{repo} --owner octocat --repo Hello-World
 ```
 
 ### 4. Compare output formats
 
 ```bash
 # TOON (default) — compact, token-efficient
-cliforapi --spec $SPEC --token $GH_TOKEN get /user
+cliforapi get /user
 
 # JSON — full envelope with all headers
-cliforapi --spec $SPEC --token $GH_TOKEN --json get /user
+cliforapi --json get /user
 ```
 
 ### 5. Test without auth (see the error)
 
 ```bash
-cliforapi --spec $SPEC get /user
+CLIFORAPI_TOKEN= cliforapi get /user
 # → status: 401, exit code: 3
 ```
 
@@ -160,3 +173,5 @@ cliforapi --spec $SPEC get /user
 ```bash
 pytest
 ```
+
+73 tests across 7 files covering spec parsing, route matching, auth, HTTP client, output formatting, and CLI integration.

@@ -7,9 +7,9 @@
 ## Tech Stack
 
 - **Language:** Python 3.10+
-- **CLI framework:** Click
+- **CLI framework:** Click (with `envvar` support for zero-flag workflows)
 - **HTTP client:** httpx
-- **Spec parsing:** pydantic models over raw dicts
+- **Spec parsing:** pydantic models over raw dicts, with `$ref` resolution
 - **TOON encoding:** `toons` (Rust-based, spec-compliant)
 - **Config/secrets:** python-dotenv, `~/.cliforapi/<domain>.env`
 - **Tests:** pytest + respx (httpx mocking)
@@ -19,13 +19,13 @@
 ```
 src/cliforapi/
 ├── cli.py       # Click entry point, subcommands, dynamic method routing
-├── spec.py      # OpenAPI 3.x / Swagger 2.0 loading, parsing, caching
+├── spec.py      # OpenAPI 3.x / Swagger 2.0 loading, parsing, $ref resolution, caching
 ├── matcher.py   # 5-stage fuzzy route matching cascade
 ├── resolver.py  # Maps CLI args → HTTP method, path, params, body
-├── auth.py      # Auth detection, .env persistence, precedence chain
+├── auth.py      # Auth detection, .env persistence, precedence chain, gitignore protection
 ├── client.py    # HTTP execution via httpx
-├── output.py    # TOON/JSON formatting, exit code mapping
-└── config.py    # ~/.cliforapi/ directory management
+├── output.py    # TOON/JSON formatting via `toons` library, exit code mapping
+└── config.py    # ~/.cliforapi/ directory management, credential protection
 ```
 
 ## Development
@@ -36,20 +36,25 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Run tests
+# Run tests (73 tests, should all pass)
 pytest
 
-# Run CLI
-cliforapi --spec <url-or-file> list
-cliforapi --spec <url-or-file> get /path --param value
+# Run CLI (env var or --spec flag)
+export CLIFORAPI_SPEC=https://petstore.swagger.io/v2/swagger.json
+cliforapi list
+cliforapi get /pet/1
 ```
 
 ## Architecture Decisions
 
 - **No codegen** — one universal CLI binary, reads specs at runtime
+- **Env var-first config** — `CLIFORAPI_SPEC`, `CLIFORAPI_TOKEN`, `CLIFORAPI_API_KEY` eliminate repetitive flags; CLI flags override when set
 - **TOON default output** — uses `toons` library (Rust-based). JSON via `--json` flag. Errors always JSON.
 - **Relative server URLs** — resolved against spec source origin in `spec.py:_resolve_base_url()`
+- **`$ref` resolution** — parameters using `$ref` pointers are resolved against the root spec document, enabling large specs like GitHub's (1080 endpoints)
+- **Auth fallback** — `--token` always injects `Authorization: Bearer` header even when the spec declares no security schemes (many real-world specs omit scheme declarations)
 - **Auth precedence** — CLI flags > `CLIFORAPI_*` env vars > `~/.cliforapi/<domain>.env`
+- **Credential protection** — `cliforapi auth` auto-adds `*.env` to `.gitignore` when config dir is in a git repo; warns on stderr otherwise
 - **Route matching cascade** — exact → normalized → positional → fuzzy → suggestions (in `matcher.py`)
 - **Exit codes** — 0=2xx, 1=CLI error, 2=auth, 3=4xx, 4=5xx, 5=network
 
@@ -64,7 +69,14 @@ cliforapi --spec <url-or-file> get /path --param value
 
 ## Testing
 
-- 70 tests across 7 files
+- 73 tests across 7 files
 - `conftest.py` provides `petstore_raw` (dict) and `petstore_spec` (parsed `ApiSpec`) fixtures
 - When testing CLI commands with `CliRunner`, always call `clear_cache()` first to avoid cross-test spec pollution
 - `pytest.raises(match=...)` matches against exception message string, not `.code` — assert `.code` separately
+- `TestProtectCredentials` tests require git to be installed (uses `git init` in tmp dirs)
+
+## Tested Against
+
+- **Petstore v2** (Swagger 2.0) — all CRUD operations, query params, positional params
+- **GitHub REST API** (OpenAPI 3.0, 1080 endpoints) — authenticated requests, `$ref` param resolution
+- **Tidy API** (OpenAPI 3.0 via readme.io) — spec auto-loaded from readme.io hosted spec URL
