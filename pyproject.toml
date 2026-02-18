@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "cliforapi"
 version = "0.1.0"
 description = "Universal CLI that reads any OpenAPI spec and exposes endpoints as shell commands — optimized for AI agent consumption"
-readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 dependencies = [
