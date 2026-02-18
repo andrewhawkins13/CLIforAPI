@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,6 +15,7 @@ from cliforapi.auth import (
     resolve_auth,
     save_credentials,
 )
+from cliforapi.config import protect_credentials
 from cliforapi.spec import ApiSpec, SecurityScheme
 
 
@@ -82,3 +84,41 @@ class TestResolveAuth:
         auth = resolve_auth(spec, "https://api.test.com/spec.json")
         assert auth.headers == {}
         assert auth.query_params == {}
+
+
+class TestProtectCredentials:
+    def test_adds_gitignore_in_git_repo(self, tmp_path: Path):
+        # Init a git repo in tmp_path
+        subprocess.run(["git", "init", str(tmp_path)], capture_output=True)
+        env_file = tmp_path / "api.example.com.env"
+        env_file.write_text('BEARER_TOKEN="abc"\n')
+
+        result = protect_credentials(env_file)
+
+        assert result is None  # no warning
+        gitignore = tmp_path / ".gitignore"
+        assert gitignore.exists()
+        assert "*.env" in gitignore.read_text()
+
+    def test_idempotent_gitignore(self, tmp_path: Path):
+        subprocess.run(["git", "init", str(tmp_path)], capture_output=True)
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text("*.env\n")
+        env_file = tmp_path / "test.env"
+        env_file.write_text("X=1\n")
+
+        protect_credentials(env_file)
+
+        # Should not duplicate the pattern
+        lines = [l for l in gitignore.read_text().splitlines() if l == "*.env"]
+        assert len(lines) == 1
+
+    def test_warns_when_not_git_repo(self, tmp_path: Path):
+        env_file = tmp_path / "api.example.com.env"
+        env_file.write_text('BEARER_TOKEN="abc"\n')
+
+        result = protect_credentials(env_file)
+
+        assert result is not None
+        assert "not inside a git repository" in result
+        assert str(env_file) in result

@@ -123,6 +123,13 @@ def auth(ctx: click.Context, spec: str) -> None:
     if credentials:
         env_path = save_credentials(spec, credentials)
         click.echo(f"\nCredentials saved to {env_path}")
+
+        from .config import protect_credentials
+        warning = protect_credentials(env_path)
+        if warning:
+            click.echo(click.style(warning, fg="yellow"), err=True)
+        else:
+            click.echo("Added *.env to .gitignore to protect credentials.")
     else:
         click.echo("\nNo credentials provided.")
 
