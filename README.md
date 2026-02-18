@@ -25,7 +25,7 @@ cliforapi get /users/42                                  # ~308 tokens
 
 ## Why This Exists
 
-AI agents calling REST APIs burn tokens on four steps: reading docs, reasoning about the API, crafting HTTP requests, and parsing JSON responses. CLIforAPI collapses all four into one command.
+AI agents calling REST APIs burn tokens on four steps: reading docs, reasoning about the API, crafting HTTP requests, and parsing JSON responses. CLIforAPI replaces all four with two commands: `list` to discover endpoints (once), then call the one you need.
 
 ### Full Workflow Comparison
 
