@@ -21,13 +21,13 @@ pip install -e ".[dev]"
 Set `CLIFORAPI_SPEC` once to skip `--spec` on every call:
 
 ```bash
-export CLIFORAPI_SPEC=https://petstore.swagger.io/v2/swagger.json
+export CLIFORAPI_SPEC=https://api.example.com/openapi.json
 
 cliforapi list
-cliforapi get /pet/{petId} --petId 1
-cliforapi post /pet --body '{"name": "Fido", "status": "available"}'
-cliforapi get /pet/1                         # positional params auto-detected
-cliforapi --json get /pet/{petId} --petId 1  # JSON output
+cliforapi get /users/{userId} --userId 42
+cliforapi post /users --body '{"name": "Alice", "email": "alice@example.com"}'
+cliforapi get /users/42                          # positional params auto-detected
+cliforapi --json get /users/{userId} --userId 42 # JSON output
 ```
 
 Or pass `--spec` directly:
@@ -59,7 +59,7 @@ AI agents that need to call a REST API typically follow this workflow:
 
 CLIforAPI collapses all four steps into a single shell command with compact output.
 
-### Full Workflow Comparison (measured against Tidy API)
+### Full Workflow Comparison
 
 **Without CLIforAPI** — agent reads docs, crafts request, parses JSON:
 
@@ -75,14 +75,14 @@ CLIforAPI collapses all four steps into a single shell command with compact outp
 | Step | Tokens |
 |------|--------|
 | `cliforapi list` (discover endpoints, one-time) | ~56 |
-| `cliforapi get /addresses` (TOON response) | ~308 |
+| `cliforapi get /users` (TOON response) | ~308 |
 | **Total** | **~364** |
 
 **Result: 58% fewer tokens for the entire interaction.**
 
 For tabular data the savings are even larger — **64%** — because TOON collapses repeated keys into a single header row and the agent skips the docs-reading step entirely.
 
-*Measured with cl100k_base tokenizer against real Tidy API responses. Docs page token count is conservative — real readme.io pages with sidebar navigation, multi-language code examples, and full schemas are typically 2-5x larger.*
+*Measured with cl100k_base tokenizer against a real API. Docs page token count is conservative — real documentation pages with navigation, code examples, and full schemas are typically 2-5x larger.*
 
 ## Output
 
@@ -92,8 +92,8 @@ Default output uses [TOON](https://toonformat.dev/) format — significantly few
 
 | Response | JSON | TOON | Saved |
 |----------|------|------|-------|
-| To-do lists (tabular) | 247 tokens | 134 tokens | **46%** |
-| Addresses (nested) | 403 tokens | 308 tokens | **24%** |
+| Users (tabular) | 247 tokens | 134 tokens | **46%** |
+| Orders (nested) | 403 tokens | 308 tokens | **24%** |
 
 *Measured with cl100k_base tokenizer. JSON numbers use equivalent body-only envelope.*
 
@@ -102,12 +102,12 @@ TOON's tabular format is where the biggest format savings come from — uniform 
 ```
 # TOON — 134 tokens
 status: 200
-elapsed_ms: 286
+elapsed_ms: 152
 body:
   object: list
-  data[2]{object,id,title,before_after_photos_state,state,is_address_favorite,is_address_default,address_id,created_at}:
-    to_do_list,196459,Northeast 24th Avenue List,inactive,active,null,null,null,"2022-06-21T15:50:25+00:00"
-    to_do_list,300524,Northeast 43rd Avenue List,null,active,null,null,null,"2023-08-08T22:46:16+00:00"
+  data[2]{id,name,email,role,status,department,manager_id,office_id,created_at}:
+    1,"Alice Johnson","alice@example.com",admin,active,engineering,null,null,"2024-01-15T09:30:00+00:00"
+    2,"Bob Smith","bob@example.com",member,active,marketing,null,null,"2024-03-22T14:15:00+00:00"
 ```
 
 ```json
@@ -118,26 +118,26 @@ body:
     "object": "list",
     "data": [
       {
-        "object": "to_do_list",
-        "id": 196459,
-        "title": "Northeast 24th Avenue List",
-        "before_after_photos_state": "inactive",
-        "state": "active",
-        "is_address_favorite": null,
-        "is_address_default": null,
-        "address_id": null,
-        "created_at": "2022-06-21T15:50:25+00:00"
+        "id": 1,
+        "name": "Alice Johnson",
+        "email": "alice@example.com",
+        "role": "admin",
+        "status": "active",
+        "department": "engineering",
+        "manager_id": null,
+        "office_id": null,
+        "created_at": "2024-01-15T09:30:00+00:00"
       },
       {
-        "object": "to_do_list",
-        "id": 300524,
-        "title": "Northeast 43rd Avenue List",
-        "before_after_photos_state": null,
-        "state": "active",
-        "is_address_favorite": null,
-        "is_address_default": null,
-        "address_id": null,
-        "created_at": "2023-08-08T22:46:16+00:00"
+        "id": 2,
+        "name": "Bob Smith",
+        "email": "bob@example.com",
+        "role": "member",
+        "status": "active",
+        "department": "marketing",
+        "manager_id": null,
+        "office_id": null,
+        "created_at": "2024-03-22T14:15:00+00:00"
       }
     ]
   }
@@ -147,7 +147,7 @@ body:
 Use `--json` when you need standard JSON output. Errors are always JSON:
 
 ```json
-{"error": "NO_MATCH", "message": "No endpoint matches 'GET /foo'. Did you mean: GET /pet/{petId}?", "status": null}
+{"error": "NO_MATCH", "message": "No endpoint matches 'GET /foo'. Did you mean: GET /users/{userId}?", "status": null}
 ```
 
 ## Auth
@@ -174,10 +174,10 @@ When credentials are saved via `cliforapi auth`, CLIforAPI automatically adds `*
 
 Routes are matched using a fuzzy cascade:
 
-1. **Exact** — `/pet/{petId}` matches verbatim
-2. **Normalized** — `:petId`, `<petId>` styles + case-insensitive
-3. **Positional** — `/pet/1` matches `/pet/{petId}` (value captured)
-4. **Fuzzy** — `/pets` matches `/pet` (singular/plural, typo tolerance)
+1. **Exact** — `/users/{userId}` matches verbatim
+2. **Normalized** — `:userId`, `<userId>` styles + case-insensitive
+3. **Positional** — `/users/42` matches `/users/{userId}` (value captured)
+4. **Fuzzy** — `/user` matches `/users` (singular/plural, typo tolerance)
 5. **Suggestions** — no match returns top 3 closest endpoints
 
 ## Exit Codes
