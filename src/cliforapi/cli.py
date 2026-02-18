@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import sys
+from pathlib import Path
 
 import click
 
@@ -150,6 +152,24 @@ def auth(ctx: click.Context, spec: str) -> None:
             click.echo("Added *.env to .gitignore to protect credentials.")
     else:
         click.echo("\nNo credentials provided.")
+
+
+# ---------------------------------------------------------------------------
+# `init` subcommand
+# ---------------------------------------------------------------------------
+
+@main.command()
+@click.pass_context
+def init(ctx: click.Context) -> None:
+    """Write CLIFORAPI.md to the current directory for AI agent discovery."""
+    target = Path.cwd() / "CLIFORAPI.md"
+    if target.exists():
+        click.echo(f"CLIFORAPI.md already exists at {target}")
+        sys.exit(EXIT_CLI_ERROR)
+
+    template = importlib.resources.files("cliforapi").joinpath("CLIFORAPI.md").read_text(encoding="utf-8")
+    target.write_text(template, encoding="utf-8")
+    click.echo(f"Created {target}")
 
 
 # ---------------------------------------------------------------------------
