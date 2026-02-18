@@ -57,11 +57,16 @@ def _parse_extra_params(args: tuple[str, ...]) -> tuple[dict[str, str], str | No
     while i < len(args_list):
         arg = args_list[i]
         if arg.startswith("--"):
-            key = arg.lstrip("-")
-            if i + 1 < len(args_list) and not args_list[i + 1].startswith("--"):
+            stripped = arg.lstrip("-")
+            if "=" in stripped:
+                key, value = stripped.split("=", 1)
+                i += 1
+            elif i + 1 < len(args_list) and not args_list[i + 1].startswith("--"):
+                key = stripped
                 value = args_list[i + 1]
                 i += 2
             else:
+                key = stripped
                 value = "true"
                 i += 1
             if key == "body":
@@ -118,15 +123,21 @@ def auth(ctx: click.Context, spec: str) -> None:
     api_spec = _load_or_fail(spec)
     schemes = detect_auth_requirements(api_spec)
 
-    if not schemes:
+    if schemes:
+        click.echo(f"Detected {len(schemes)} security scheme(s):")
+        for name, scheme in schemes:
+            click.echo(f"  - {name}: {scheme.type}" + (f" ({scheme.scheme})" if scheme.scheme else ""))
+        credentials = prompt_for_credentials(schemes)
+    else:
         click.echo("This API does not declare any security schemes.")
-        return
-
-    click.echo(f"Detected {len(schemes)} security scheme(s):")
-    for name, scheme in schemes:
-        click.echo(f"  - {name}: {scheme.type}" + (f" ({scheme.scheme})" if scheme.scheme else ""))
-
-    credentials = prompt_for_credentials(schemes)
+        click.echo("You can still store a bearer token or API key for use with this API.\n")
+        token = input("Bearer token (leave blank to skip): ").strip()
+        api_key = input("API key (leave blank to skip): ").strip()
+        credentials = {}
+        if token:
+            credentials["BEARER_TOKEN"] = token
+        if api_key:
+            credentials["API_KEY_AUTHORIZATION"] = api_key
     if credentials:
         env_path = save_credentials(spec, credentials)
         click.echo(f"\nCredentials saved to {env_path}")

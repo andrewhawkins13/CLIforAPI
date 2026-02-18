@@ -85,6 +85,16 @@ class TestResolveAuth:
         assert auth.headers == {}
         assert auth.query_params == {}
 
+    def test_no_schemes_loads_saved_token(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        """Saved .env token should be used even when spec has no security schemes."""
+        monkeypatch.setattr("cliforapi.config.CONFIG_DIR", tmp_path)
+        monkeypatch.delenv("CLIFORAPI_BEARER_TOKEN", raising=False)
+        spec_ref = "https://api.test.com/spec.json"
+        save_credentials(spec_ref, {"BEARER_TOKEN": "saved-tok"})
+        spec = ApiSpec(title="Test", version="1.0", base_url="https://api.test.com")
+        auth = resolve_auth(spec, spec_ref)
+        assert auth.headers["Authorization"] == "Bearer saved-tok"
+
 
 class TestProtectCredentials:
     def test_adds_gitignore_in_git_repo(self, tmp_path: Path):

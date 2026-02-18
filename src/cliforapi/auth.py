@@ -151,9 +151,14 @@ def resolve_auth(
             if token:
                 auth.headers["Authorization"] = f"Bearer {token}"
 
-    # CLI flags always apply, even if the spec declares no security schemes
+    # Fallback: apply credentials even if the spec declares no security schemes
     if "Authorization" not in auth.headers:
-        token = cli_token or os.environ.get("CLIFORAPI_BEARER_TOKEN")
+        token = (
+            cli_token
+            or os.environ.get("CLIFORAPI_BEARER_TOKEN")
+            or env_creds.get("BEARER_TOKEN")
+            or env_creds.get("OAUTH_TOKEN")
+        )
         if token:
             auth.headers["Authorization"] = f"Bearer {token}"
 

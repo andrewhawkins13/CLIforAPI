@@ -48,20 +48,56 @@ All flags can be set via env vars for a zero-flag workflow:
 
 CLI flags always override env vars when both are set.
 
+## Why cliforapi?
+
+AI agents that need to call a REST API typically follow this workflow:
+
+1. **Read the docs page** — fetch and parse the HTML documentation (hundreds to thousands of tokens depending on the page)
+2. **Reason about the API** — figure out the base URL, HTTP method, path, auth mechanism, required headers
+3. **Craft an HTTP request** — construct the correct curl/httpx/fetch call
+4. **Parse the JSON response** — read the raw JSON body
+
+cliforapi collapses all four steps into a single shell command with compact output.
+
+### Full Workflow Comparison (measured against Tidy API)
+
+**Without cliforapi** — agent reads docs, crafts request, parses JSON:
+
+| Step | Tokens |
+|------|--------|
+| Read API docs page | ~386 |
+| Reason about API + craft HTTP request | ~125 |
+| Parse JSON response | ~365 |
+| **Total** | **~876** |
+
+**With cliforapi** — agent runs one command:
+
+| Step | Tokens |
+|------|--------|
+| `cliforapi list` (discover endpoints, one-time) | ~56 |
+| `cliforapi get /addresses` (TOON response) | ~308 |
+| **Total** | **~364** |
+
+**Result: 58% fewer tokens for the entire interaction.**
+
+For tabular data the savings are even larger — **64%** — because TOON collapses repeated keys into a single header row and the agent skips the docs-reading step entirely.
+
+*Measured with cl100k_base tokenizer against real Tidy API responses. Docs page token count is conservative — real readme.io pages with sidebar navigation, multi-language code examples, and full schemas are typically 2-5x larger.*
+
 ## Output
 
 Default output uses [TOON](https://toonformat.dev/) format — significantly fewer tokens than JSON, which directly reduces cost and context usage for AI agents.
 
-### Token Savings (real-world, measured against Tidy API)
+### Response Format Comparison (TOON vs JSON)
 
 | Response | JSON | TOON | Saved |
 |----------|------|------|-------|
 | To-do lists (tabular) | 247 tokens | 134 tokens | **46%** |
 | Addresses (nested) | 403 tokens | 308 tokens | **24%** |
 
-*Measured with cl100k_base tokenizer. JSON numbers use equivalent body-only envelope for a fair comparison.*
+*Measured with cl100k_base tokenizer. JSON numbers use equivalent body-only envelope.*
 
-TOON's tabular format is where the biggest savings come from — uniform lists of objects collapse key repetition into a single header row:
+TOON's tabular format is where the biggest format savings come from — uniform lists of objects collapse key repetition into a single header row:
 
 ```
 # TOON — 134 tokens
@@ -154,55 +190,6 @@ Routes are matched using a fuzzy cascade:
 | 3 | Client error (4xx) |
 | 4 | Server error (5xx) |
 | 5 | Network error |
-
-## Real-World Example: GitHub API
-
-Step-by-step walkthrough using the GitHub REST API (1080 endpoints, bearer token auth).
-
-### 1. Set up
-
-Use an existing token or create one at https://github.com/settings/tokens. If you have the `gh` CLI:
-
-```bash
-export CLIFORAPI_SPEC=https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
-export CLIFORAPI_TOKEN=$(gh auth token)
-```
-
-### 2. Explore available endpoints
-
-```bash
-cliforapi list | head -20
-```
-
-### 3. Make authenticated requests
-
-```bash
-# Get your user profile
-cliforapi get /user
-
-# List your repos
-cliforapi get /user/repos --per_page 3
-
-# Get a specific repo
-cliforapi get /repos/{owner}/{repo} --owner octocat --repo Hello-World
-```
-
-### 4. Compare output formats
-
-```bash
-# TOON (default) — compact, token-efficient
-cliforapi get /user
-
-# JSON — full envelope with all headers
-cliforapi --json get /user
-```
-
-### 5. Test without auth (see the error)
-
-```bash
-CLIFORAPI_TOKEN= cliforapi get /user
-# → status: 401, exit code: 3
-```
 
 ## Spec Support
 

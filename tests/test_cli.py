@@ -87,6 +87,17 @@ class TestGetCommand:
         assert "Rex" in result.output
 
     @respx.mock
+    def test_get_with_equals_syntax(self, runner: CliRunner, spec_file: str):
+        from cliforapi.spec import clear_cache
+        clear_cache()
+        respx.get("https://petstore.example.com/v1/pets/42").mock(
+            return_value=httpx.Response(200, json={"id": 42, "name": "Rex"})
+        )
+        result = runner.invoke(main, ["--spec", spec_file, "get", "/pets/{petId}", "--petId=42"])
+        assert result.exit_code == 0
+        assert "Rex" in result.output
+
+    @respx.mock
     def test_get_json_flag(self, runner: CliRunner, spec_file: str):
         from cliforapi.spec import clear_cache
         clear_cache()
@@ -111,6 +122,53 @@ class TestGetCommand:
     def test_get_no_spec(self, runner: CliRunner):
         result = runner.invoke(main, ["get", "/pets"])
         assert result.exit_code != 0
+
+
+class TestAuthCommand:
+    def test_auth_fallback_no_schemes(self, runner: CliRunner, tmp_path: Path):
+        """When spec has no security schemes, auth should still offer to store a token."""
+        from cliforapi.spec import clear_cache
+        clear_cache()
+
+        # Spec with no security schemes
+        no_auth_spec = {
+            "openapi": "3.0.0",
+            "info": {"title": "NoAuth", "version": "1.0.0"},
+            "servers": [{"url": "https://api.example.com"}],
+            "paths": {"/health": {"get": {"summary": "Health check"}}},
+        }
+        spec_path = tmp_path / "noauth.json"
+        spec_path.write_text(json.dumps(no_auth_spec))
+
+        with patch("cliforapi.config.CONFIG_DIR", tmp_path):
+            result = runner.invoke(
+                main, ["auth", "--spec", str(spec_path)],
+                input="my-secret-token\n\n",
+            )
+        assert result.exit_code == 0
+        assert "does not declare any security schemes" in result.output
+        assert "Credentials saved" in result.output
+
+    def test_auth_fallback_skip_both(self, runner: CliRunner, tmp_path: Path):
+        """When user skips both token and API key, no credentials saved."""
+        from cliforapi.spec import clear_cache
+        clear_cache()
+
+        no_auth_spec = {
+            "openapi": "3.0.0",
+            "info": {"title": "NoAuth", "version": "1.0.0"},
+            "servers": [{"url": "https://api.example.com"}],
+            "paths": {"/health": {"get": {"summary": "Health check"}}},
+        }
+        spec_path = tmp_path / "noauth.json"
+        spec_path.write_text(json.dumps(no_auth_spec))
+
+        result = runner.invoke(
+            main, ["auth", "--spec", str(spec_path)],
+            input="\n\n",
+        )
+        assert result.exit_code == 0
+        assert "No credentials provided" in result.output
 
 
 class TestPostCommand:
