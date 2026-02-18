@@ -1,4 +1,4 @@
-# cliforapi
+# CLIforAPI
 
 Universal CLI that reads any OpenAPI spec and exposes its endpoints as shell commands — optimized for AI agent consumption.
 
@@ -48,7 +48,7 @@ All flags can be set via env vars for a zero-flag workflow:
 
 CLI flags always override env vars when both are set.
 
-## Why cliforapi?
+## Why CLIforAPI?
 
 AI agents that need to call a REST API typically follow this workflow:
 
@@ -57,11 +57,11 @@ AI agents that need to call a REST API typically follow this workflow:
 3. **Craft an HTTP request** — construct the correct curl/httpx/fetch call
 4. **Parse the JSON response** — read the raw JSON body
 
-cliforapi collapses all four steps into a single shell command with compact output.
+CLIforAPI collapses all four steps into a single shell command with compact output.
 
 ### Full Workflow Comparison (measured against Tidy API)
 
-**Without cliforapi** — agent reads docs, crafts request, parses JSON:
+**Without CLIforAPI** — agent reads docs, crafts request, parses JSON:
 
 | Step | Tokens |
 |------|--------|
@@ -70,7 +70,7 @@ cliforapi collapses all four steps into a single shell command with compact outp
 | Parse JSON response | ~365 |
 | **Total** | **~876** |
 
-**With cliforapi** — agent runs one command:
+**With CLIforAPI** — agent runs one command:
 
 | Step | Tokens |
 |------|--------|
@@ -168,7 +168,7 @@ cliforapi get /protected
 
 Precedence: CLI flags > env vars > `.env` file.
 
-When credentials are saved via `cliforapi auth`, the tool automatically adds `*.env` to `.gitignore` if the config directory is inside a git repo. If not, it prints a warning about the plaintext credentials file.
+When credentials are saved via `cliforapi auth`, CLIforAPI automatically adds `*.env` to `.gitignore` if the config directory is inside a git repo. If not, it prints a warning about the plaintext credentials file.
 
 ## Route Matching
 
@@ -204,4 +204,4 @@ Routes are matched using a fuzzy cascade:
 pytest
 ```
 
-73 tests across 7 files covering spec parsing, route matching, auth, HTTP client, output formatting, and CLI integration.
+77 tests across 7 files covering spec parsing, route matching, auth, HTTP client, output formatting, and CLI integration.

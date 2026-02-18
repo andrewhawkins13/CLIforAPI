@@ -1,8 +1,8 @@
-# CLAUDE.md — cliforapi
+# CLAUDE.md — CLIforAPI
 
 ## Project Overview
 
-**cliforapi** is a runtime proxy CLI that reads any OpenAPI spec and dynamically exposes its endpoints as shell commands. Primary users are AI agents — output is token-efficient TOON by default with predictable exit codes and structured errors.
+**CLIforAPI** is a runtime proxy CLI that reads any OpenAPI spec and dynamically exposes its endpoints as shell commands. Primary users are AI agents — output is token-efficient TOON by default with predictable exit codes and structured errors.
 
 ## Tech Stack
 
@@ -36,7 +36,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Run tests (73 tests, should all pass)
+# Run tests (77 tests, should all pass)
 pytest
 
 # Run CLI (env var or --spec flag)
@@ -69,7 +69,7 @@ cliforapi get /pet/1
 
 ## Testing
 
-- 73 tests across 7 files
+- 77 tests across 7 files
 - `conftest.py` provides `petstore_raw` (dict) and `petstore_spec` (parsed `ApiSpec`) fixtures
 - When testing CLI commands with `CliRunner`, always call `clear_cache()` first to avoid cross-test spec pollution
 - `pytest.raises(match=...)` matches against exception message string, not `.code` — assert `.code` separately
