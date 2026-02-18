@@ -1,4 +1,4 @@
-# CLIFORAPI.md — Agent Instructions
+# CLIFORAPI.md - Agent Instructions
 
 CLIforAPI is installed in this project. Use it instead of curl, httpx, or requests for all API calls. It reads the OpenAPI spec and exposes every endpoint as a shell command with token-efficient output.
 
@@ -16,7 +16,7 @@ If these are not set, check the project's `.env` or ask the user.
 
 ## Two-Command Workflow
 
-**Step 1 — Discover endpoints (run once):**
+**Step 1 - Discover endpoints (run once):**
 
 ```bash
 cliforapi list
@@ -24,7 +24,7 @@ cliforapi list
 
 Returns every endpoint with method, path, and summary.
 
-**Step 2 — Call the endpoint you need:**
+**Step 2 - Call the endpoint you need:**
 
 ```bash
 cliforapi <method> <path> [params]
@@ -32,20 +32,20 @@ cliforapi <method> <path> [params]
 
 ## Passing Parameters
 
-**Path parameters** — use the concrete value directly:
+**Path parameters** - use the concrete value directly:
 
 ```bash
 cliforapi get /users/42
 cliforapi delete /projects/7/tasks/13
 ```
 
-**Query parameters** — pass as `--name value` flags:
+**Query parameters** - pass as `--name value` flags:
 
 ```bash
 cliforapi get /users --status active --limit 10
 ```
 
-**Request body** — pass as `--body` with a JSON string:
+**Request body** - pass as `--body` with a JSON string:
 
 ```bash
 cliforapi post /users --body '{"name": "Alice", "email": "alice@example.com"}'
@@ -90,15 +90,15 @@ Use exit codes for programmatic error handling:
 | Flag | Env Var | Purpose |
 |------|---------|---------|
 | `--spec` | `CLIFORAPI_SPEC` | OpenAPI spec URL or file path |
-| `--json` | — | Output JSON instead of TOON |
+| `--json` | - | Output JSON instead of TOON |
 | `--token` | `CLIFORAPI_TOKEN` | Bearer token |
 | `--api-key` | `CLIFORAPI_API_KEY` | API key |
-| `--timeout` | — | Request timeout in seconds (default: 30) |
+| `--timeout` | - | Request timeout in seconds (default: 30) |
 
 ## Rules
 
 - Always use `cliforapi` instead of constructing HTTP requests manually.
 - Run `cliforapi list` once to discover available endpoints before guessing paths.
-- Do not manage auth yourself — use the env vars or CLI flags above.
+- Do not manage auth yourself - use the env vars or CLI flags above.
 - Check exit codes to detect errors programmatically.
 - Prefer default TOON output; only use `--json` when you need to parse structured fields.

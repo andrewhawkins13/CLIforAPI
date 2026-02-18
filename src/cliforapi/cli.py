@@ -167,8 +167,8 @@ def init(ctx: click.Context) -> None:
         click.echo(f"CLIFORAPI.md already exists at {target}")
         sys.exit(EXIT_CLI_ERROR)
 
-    template = importlib.resources.files("cliforapi").joinpath("CLIFORAPI.md").read_text()
-    target.write_text(template)
+    template = importlib.resources.files("cliforapi").joinpath("CLIFORAPI.md").read_text(encoding="utf-8")
+    target.write_text(template, encoding="utf-8")
     click.echo(f"Created {target}")
 
 
