@@ -202,11 +202,24 @@ def _load_raw(spec_ref: str) -> dict[str, Any]:
     return json.loads(text)
 
 
+def _resolve_base_url(base_url: str, spec_ref: str) -> str:
+    """Resolve a relative server URL against the spec's source URL."""
+    if base_url.startswith(("http://", "https://")):
+        return base_url
+    if spec_ref.startswith(("http://", "https://")):
+        parsed = urlparse(spec_ref)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        return origin + base_url
+    return base_url
+
+
 def load_spec(spec_ref: str) -> ApiSpec:
     """Load and parse an OpenAPI spec, with in-memory caching."""
     if spec_ref not in _cache:
         raw = _load_raw(spec_ref)
-        _cache[spec_ref] = parse_spec(raw)
+        spec = parse_spec(raw)
+        spec.base_url = _resolve_base_url(spec.base_url, spec_ref)
+        _cache[spec_ref] = spec
     return _cache[spec_ref]
 
 
