@@ -1,63 +1,31 @@
 # CLIforAPI
 
-Universal CLI that reads any OpenAPI spec and exposes its endpoints as shell commands — optimized for AI agent consumption.
+Point this CLI at any OpenAPI spec. Every endpoint becomes a shell command — with output compressed for AI agents.
 
-## Install
+## Before / After
 
-```bash
-pip install .
-```
-
-Or for development:
+Without CLIforAPI — read docs, craft curl, parse JSON:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+# 1. Read the API docs to find the right endpoint       (~386 tokens)
+# 2. Figure out method, path, auth, headers              (~125 tokens)
+curl -s https://api.example.com/users/42 \
+  -H "Authorization: Bearer $TOKEN" | jq .              # (~365 tokens)
+# Total: ~876 tokens
 ```
 
-## Usage
-
-Set `CLIFORAPI_SPEC` once to skip `--spec` on every call:
+With CLIforAPI:
 
 ```bash
-export CLIFORAPI_SPEC=https://api.example.com/openapi.json
-
-cliforapi list
-cliforapi get /users/{userId} --userId 42
-cliforapi post /users --body '{"name": "Alice", "email": "alice@example.com"}'
-cliforapi get /users/42                          # positional params auto-detected
-cliforapi --json get /users/{userId} --userId 42 # JSON output
+cliforapi get /users/42                                  # ~308 tokens
+# Total: ~364 tokens (including one-time `list` call)
 ```
 
-Or pass `--spec` directly:
+**58% fewer tokens for the same result.**
 
-```bash
-cliforapi --spec ./openapi.yaml get /users
-```
+## Why This Exists
 
-## Environment Variables
-
-All flags can be set via env vars for a zero-flag workflow:
-
-| Env Var | Flag | Purpose |
-|---------|------|---------|
-| `CLIFORAPI_SPEC` | `--spec` | OpenAPI spec URL or file path |
-| `CLIFORAPI_TOKEN` | `--token` | Bearer token for auth |
-| `CLIFORAPI_API_KEY` | `--api-key` | API key for auth |
-
-CLI flags always override env vars when both are set.
-
-## Why CLIforAPI?
-
-AI agents that need to call a REST API typically follow this workflow:
-
-1. **Read the docs page** — fetch and parse the HTML documentation (hundreds to thousands of tokens depending on the page)
-2. **Reason about the API** — figure out the base URL, HTTP method, path, auth mechanism, required headers
-3. **Craft an HTTP request** — construct the correct curl/httpx/fetch call
-4. **Parse the JSON response** — read the raw JSON body
-
-CLIforAPI collapses all four steps into a single shell command with compact output.
+AI agents calling REST APIs burn tokens on four steps: reading docs, reasoning about the API, crafting HTTP requests, and parsing JSON responses. CLIforAPI collapses all four into one command.
 
 ### Full Workflow Comparison
 
@@ -78,17 +46,29 @@ CLIforAPI collapses all four steps into a single shell command with compact outp
 | `cliforapi get /users` (TOON response) | ~308 |
 | **Total** | **~364** |
 
-**Result: 58% fewer tokens for the entire interaction.**
-
-For tabular data the savings are even larger — **64%** — because TOON collapses repeated keys into a single header row and the agent skips the docs-reading step entirely.
+For tabular data the savings hit **64%** because TOON collapses repeated keys into a single header row.
 
 *Measured with cl100k_base tokenizer against a real API. Docs page token count is conservative — real documentation pages with navigation, code examples, and full schemas are typically 2-5x larger.*
 
-## Output
+## Quick Start
 
-Default output uses [TOON](https://toonformat.dev/) format — significantly fewer tokens than JSON, which directly reduces cost and context usage for AI agents.
+```bash
+pip install .
+export CLIFORAPI_SPEC=https://api.example.com/openapi.json
 
-### Response Format Comparison (TOON vs JSON)
+cliforapi list                                        # discover endpoints
+cliforapi get /users/42                               # positional params auto-detected
+cliforapi post /users --body '{"name": "Alice"}'      # create
+cliforapi --json get /users/42                        # JSON output instead of TOON
+```
+
+Spec can also be a local file: `cliforapi --spec ./openapi.yaml get /users`
+
+## Output Format
+
+Default output is [TOON](https://toonformat.dev/). Pass `--json` for standard JSON. Errors are always JSON.
+
+### TOON vs JSON
 
 | Response | JSON | TOON | Saved |
 |----------|------|------|-------|
@@ -97,7 +77,7 @@ Default output uses [TOON](https://toonformat.dev/) format — significantly few
 
 *Measured with cl100k_base tokenizer. JSON numbers use equivalent body-only envelope.*
 
-TOON's tabular format is where the biggest format savings come from — uniform lists of objects collapse key repetition into a single header row:
+Tabular data is where the biggest savings come from — uniform lists collapse key repetition into a single header row:
 
 ```
 # TOON — 134 tokens
@@ -144,7 +124,7 @@ body:
 }
 ```
 
-Use `--json` when you need standard JSON output. Errors are always JSON:
+Error output is always JSON:
 
 ```json
 {"error": "NO_MATCH", "message": "No endpoint matches 'GET /foo'. Did you mean: GET /users/{userId}?", "status": null}
@@ -169,6 +149,18 @@ cliforapi get /protected
 Precedence: CLI flags > env vars > `.env` file.
 
 When credentials are saved via `cliforapi auth`, CLIforAPI automatically adds `*.env` to `.gitignore` if the config directory is inside a git repo. If not, it prints a warning about the plaintext credentials file.
+
+## Environment Variables
+
+All flags can be set via env vars for a zero-flag workflow:
+
+| Env Var | Flag | Purpose |
+|---------|------|---------|
+| `CLIFORAPI_SPEC` | `--spec` | OpenAPI spec URL or file path |
+| `CLIFORAPI_TOKEN` | `--token` | Bearer token for auth |
+| `CLIFORAPI_API_KEY` | `--api-key` | API key for auth |
+
+CLI flags always override env vars when both are set.
 
 ## Route Matching
 
