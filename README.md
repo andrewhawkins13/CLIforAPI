@@ -50,22 +50,65 @@ CLI flags always override env vars when both are set.
 
 ## Output
 
-Default output uses [TOON](https://toonformat.dev/) format (30-60% fewer tokens than JSON):
+Default output uses [TOON](https://toonformat.dev/) format — significantly fewer tokens than JSON, which directly reduces cost and context usage for AI agents.
+
+### Token Savings (real-world, measured against Tidy API)
+
+| Response | JSON | TOON | Saved |
+|----------|------|------|-------|
+| To-do lists (tabular) | 247 tokens | 134 tokens | **46%** |
+| Addresses (nested) | 403 tokens | 308 tokens | **24%** |
+
+*Measured with cl100k_base tokenizer. JSON numbers use equivalent body-only envelope for a fair comparison.*
+
+TOON's tabular format is where the biggest savings come from — uniform lists of objects collapse key repetition into a single header row:
 
 ```
+# TOON — 134 tokens
 status: 200
-elapsed_ms: 142
-headers:
-  "content-type": application/json
+elapsed_ms: 286
 body:
-  id: 1
-  name: doggie
-  status: available
+  object: list
+  data[2]{object,id,title,before_after_photos_state,state,is_address_favorite,is_address_default,address_id,created_at}:
+    to_do_list,196459,Northeast 24th Avenue List,inactive,active,null,null,null,"2022-06-21T15:50:25+00:00"
+    to_do_list,300524,Northeast 43rd Avenue List,null,active,null,null,null,"2023-08-08T22:46:16+00:00"
 ```
 
-Use `--json` for standard JSON envelope when you need machine-parseable output.
+```json
+// JSON — 247 tokens
+{
+  "status": 200,
+  "body": {
+    "object": "list",
+    "data": [
+      {
+        "object": "to_do_list",
+        "id": 196459,
+        "title": "Northeast 24th Avenue List",
+        "before_after_photos_state": "inactive",
+        "state": "active",
+        "is_address_favorite": null,
+        "is_address_default": null,
+        "address_id": null,
+        "created_at": "2022-06-21T15:50:25+00:00"
+      },
+      {
+        "object": "to_do_list",
+        "id": 300524,
+        "title": "Northeast 43rd Avenue List",
+        "before_after_photos_state": null,
+        "state": "active",
+        "is_address_favorite": null,
+        "is_address_default": null,
+        "address_id": null,
+        "created_at": "2023-08-08T22:46:16+00:00"
+      }
+    ]
+  }
+}
+```
 
-Errors are always JSON:
+Use `--json` when you need standard JSON output. Errors are always JSON:
 
 ```json
 {"error": "NO_MATCH", "message": "No endpoint matches 'GET /foo'. Did you mean: GET /pet/{petId}?", "status": null}
