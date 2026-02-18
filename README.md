@@ -98,11 +98,62 @@ Routes are matched using a fuzzy cascade:
 | 4 | Server error (5xx) |
 | 5 | Network error |
 
+## Real-World Example: GitHub API
+
+Step-by-step walkthrough using the GitHub REST API (1080 endpoints, bearer token auth).
+
+### 1. Get a GitHub token
+
+Use an existing token or create one at https://github.com/settings/tokens. If you have the `gh` CLI:
+
+```bash
+export GH_TOKEN=$(gh auth token)
+```
+
+### 2. Explore available endpoints
+
+```bash
+SPEC=https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
+
+cliforapi --spec $SPEC list | head -20
+```
+
+### 3. Make an authenticated request
+
+```bash
+# Get your user profile
+cliforapi --spec $SPEC --token $GH_TOKEN get /user
+
+# List your repos
+cliforapi --spec $SPEC --token $GH_TOKEN get /user/repos --per_page 3
+
+# Get a specific repo
+cliforapi --spec $SPEC --token $GH_TOKEN get /repos/{owner}/{repo} --owner andrewhawkins13 --repo cliforapi
+```
+
+### 4. Compare output formats
+
+```bash
+# TOON (default) — compact, token-efficient
+cliforapi --spec $SPEC --token $GH_TOKEN get /user
+
+# JSON — full envelope with all headers
+cliforapi --spec $SPEC --token $GH_TOKEN --json get /user
+```
+
+### 5. Test without auth (see the error)
+
+```bash
+cliforapi --spec $SPEC get /user
+# → status: 401, exit code: 3
+```
+
 ## Spec Support
 
 - OpenAPI 3.x (JSON/YAML)
 - Swagger 2.0 (JSON/YAML)
 - Remote URL or local file
+- `$ref` parameter resolution
 
 ## Tests
 

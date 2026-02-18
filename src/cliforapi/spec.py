@@ -53,9 +53,31 @@ class ApiSpec(BaseModel):
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
-def _parse_params(raw_params: list[dict[str, Any]]) -> list[ParamSpec]:
+def _resolve_ref(ref: str, root: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a JSON pointer $ref like '#/components/parameters/foo'."""
+    if not ref.startswith("#/"):
+        return {}
+    parts = ref[2:].split("/")
+    node: Any = root
+    for part in parts:
+        if isinstance(node, dict):
+            node = node.get(part, {})
+        else:
+            return {}
+    return node if isinstance(node, dict) else {}
+
+
+def _parse_params(
+    raw_params: list[dict[str, Any]],
+    root: dict[str, Any] | None = None,
+) -> list[ParamSpec]:
     out: list[ParamSpec] = []
     for p in raw_params:
+        # Resolve $ref if present
+        if "$ref" in p and root:
+            p = _resolve_ref(p["$ref"], root)
+        if "name" not in p:
+            continue  # skip unresolvable refs
         schema = p.get("schema", {})
         out.append(ParamSpec(
             name=p["name"],
@@ -140,7 +162,7 @@ def parse_spec(raw: dict[str, Any]) -> ApiSpec:
         if not isinstance(path_item, dict):
             continue
         # Path-level parameters
-        path_params = _parse_params(path_item.get("parameters", []))
+        path_params = _parse_params(path_item.get("parameters", []), root=raw)
 
         for method in HTTP_METHODS:
             op_raw = path_item.get(method)
@@ -148,7 +170,7 @@ def parse_spec(raw: dict[str, Any]) -> ApiSpec:
                 continue
 
             # Merge path-level + operation-level params (operation wins)
-            op_params = _parse_params(op_raw.get("parameters", []))
+            op_params = _parse_params(op_raw.get("parameters", []), root=raw)
             seen = {p.name for p in op_params}
             merged = op_params + [p for p in path_params if p.name not in seen]
 
